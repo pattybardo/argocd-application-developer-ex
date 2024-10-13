@@ -15,6 +15,8 @@ env:
   REGISTRY: ghcr.io
   # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
+  GITOPS_REPO_NAME: argocd-test
+  GITOPS_MANIFEST_FILE: argocd-application-developer-ex/deployment.yaml
 
 
 jobs:
@@ -94,3 +96,25 @@ jobs:
         # This step uses the identity token to provision an ephemeral certificate
         # against the sigstore community Fulcio instance.
         run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+
+      # Clone the GitOps repository
+      - name: Clone GitOps repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.actor }}/${{env.GITOPS_REPO_NAME}}
+          ssh-key: ${{ secrets.GITOPS_DEPLOY_KEY }}
+
+       # Update Kubernetes manifest file with new image version
+      - name: Update Kubernetes manifest
+        run: |
+          sed -i "s|image: ghcr.io/.*/.*:.*|image: ${{ steps.build-and-push.outputs.imageid }}|g" ${{env.GITOPS_REPO_NAME}}/${{env.GITOPS_MANIFEST_FILE}}
+
+      # Commit and push the change back to GitOps repo
+      - name: Commit and push changes
+        run: |
+          cd gitops-repo
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add ${{env.GITOPS_MANIFEST_FILE}}
+          git commit -m "Update image to version ${{ env.GIT_HASH }}"
+          git push origin main
