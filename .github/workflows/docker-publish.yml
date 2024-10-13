@@ -106,13 +106,22 @@ jobs:
           path: ${{env.GITOPS_REPO_NAME}}
 
 
-      - name: Print Docker metadata
+      - name: Extract Image Name
         run: |
-          echo "${{ steps.build-and-push.outputs.metadata }}"
+          echo "${{ steps.build-and-push.outputs.metadata }}" > output.json
+
+
+      # Extract the image_url from the JSON using jq
+      - name: Extract image_ul from JSON
+        id: extract_image_url
+        run: |
+          IMAGE_NAME=$(jq -r '."image.name"' output.json)
+          echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
+
        # Update Kubernetes manifest file with new image version
       - name: Update Kubernetes manifest
         run: |
-          sed -i "s|image: ghcr.io/.*/.*:.*|image: ${{ steps.build-and-push.outputs.imageid }}|g" ${{env.GITOPS_REPO_NAME}}/${{env.GITOPS_MANIFEST_FILE}}
+          sed -i "s|image: ghcr.io/.*/.*:.*|image: ${{ env.IMAGE_NAME }}|g" ${{env.GITOPS_REPO_NAME}}/${{env.GITOPS_MANIFEST_FILE}} && cat "${{env.GITOPS_REPO_NAME}}/${{env.GITOPS_MANIFEST_FILE}}"
 
       # Commit and push the change back to GitOps repo
       - name: Commit and push changes
