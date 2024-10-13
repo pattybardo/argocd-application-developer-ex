@@ -108,7 +108,7 @@ jobs:
 
       - name: Print Docker metadata
         run: |
-          echo "${{ step.build-and-push.outputs.metadata }}"
+          echo "${{ steps.build-and-push.outputs.metadata }}"
        # Update Kubernetes manifest file with new image version
       - name: Update Kubernetes manifest
         run: |
