@@ -103,7 +103,12 @@ jobs:
         with:
           repository: ${{ github.actor }}/${{env.GITOPS_REPO_NAME}}
           ssh-key: ${{ secrets.GITOPS_DEPLOY_KEY }}
+          path: ${{env.GITOPS_REPO_NAME}}
 
+
+      - name: Print Docker metadata
+        run: |
+          echo "${{ step.build-and-push.outputs.metadata }}"
        # Update Kubernetes manifest file with new image version
       - name: Update Kubernetes manifest
         run: |
